@@ -1,0 +1,10 @@
+{
+  "description": "Refuses dangerous commands and the reading of secrets before they run. You let one through once, in a click, from its tab.",
+  "topics": [
+    "hangar-kit",
+    "hangar",
+    "claude-code",
+    "safety",
+    "hooks"
+  ]
+}
