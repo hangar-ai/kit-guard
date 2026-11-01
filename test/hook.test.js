@@ -346,3 +346,36 @@ test("nothing in the hook needs a dependency", () => {
     }
   }
 });
+
+// /proc says which folder a process holds. Windows, where it matters most, has none, and shows the
+// same mistake only on some of its versions.
+test("the process that asks for the tab does not sit in the project", { skip: process.platform !== "linux" && "needs /proc" }, async (t) => {
+  const { project, env } = setup(t);
+  // A Hangar that takes the request and never answers it: the process stays two seconds to look at.
+  const server = http.createServer(() => undefined);
+  await new Promise((resolve) => server.listen(testPort(), "127.0.0.1", resolve));
+  t.after(() => {
+    server.closeAllConnections();
+    server.close();
+  });
+  // Started in the project, as Claude Code starts a hook.
+  const { code } = await runHook(bashEvent("git reset --hard", project), { ...env, HANGAR_API_URL: `http://127.0.0.1:${server.address().port}`, HANGAR_API_TOKEN: "tok" }, undefined, project);
+  assert.equal(code, 0);
+
+  const script = path.join(KIT, "hooks", "open-tab.js");
+  const foldersOf = () =>
+    fs.readdirSync("/proc").filter((name) => /^\d+$/.test(name)).flatMap((pid) => {
+      try {
+        return fs.readFileSync(`/proc/${pid}/cmdline`, "latin1").split("\0").includes(script) ? [fs.readlinkSync(`/proc/${pid}/cwd`)] : [];
+      } catch {
+        return [];
+      }
+    });
+  let folders = foldersOf();
+  for (let waited = 0; waited < 1500 && !folders.length; waited += 20) {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    folders = foldersOf();
+  }
+  assert.ok(folders.length, "the process is there to look at");
+  assert.ok(!folders.includes(fs.realpathSync(project)), `it sits in ${folders.join(", ")}`);
+});

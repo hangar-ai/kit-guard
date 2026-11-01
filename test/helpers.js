@@ -130,12 +130,12 @@ class FakeNode {
 const fakeDocument = { createElement: (tag) => new FakeNode(tag) };
 
 /** The hook, as Claude Code starts it. Resolves { code, stdout, stderr, ms }. */
-function runHook(stdin, env = {}, script = HOOK) {
+function runHook(stdin, env = {}, script = HOOK, cwd = undefined) {
   return new Promise((resolve, reject) => {
     const started = Date.now();
     const base = { ...process.env };
     for (const name of ["HANGAR_API_URL", "HANGAR_API_TOKEN", "HANGAR_PANE_ID", "HANGAR_PANE_NAME", "HANGAR_KITS_DATA", "CLAUDE_PROJECT_DIR", "CLAUDE_PLUGIN_ROOT"]) delete base[name];
-    const child = spawn(process.execPath, [script], { env: { ...base, ...env }, stdio: ["pipe", "pipe", "pipe"], windowsHide: true });
+    const child = spawn(process.execPath, [script], { cwd, env: { ...base, ...env }, stdio: ["pipe", "pipe", "pipe"], windowsHide: true });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk) => (stdout += chunk));

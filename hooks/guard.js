@@ -4,6 +4,7 @@
 // 0. Anything that goes wrong in here lets the call through and is logged in the kit's
 // data folder.
 const { spawn } = require("node:child_process");
+const os = require("node:os");
 const path = require("node:path");
 
 let finished = false;
@@ -35,7 +36,10 @@ process.stdout.on("error", () => process.exit(0));
 function openTab() {
   const { HANGAR_API_URL, HANGAR_API_TOKEN, HANGAR_PANE_ID } = process.env;
   if (!HANGAR_API_URL || !HANGAR_API_TOKEN || !HANGAR_PANE_ID) return;
+  // Not in the project: on Windows a folder cannot be deleted while it is a process's working
+  // directory. The temporary folder, as the kit's own could be removed with the kit.
   const child = spawn(process.execPath, [path.join(__dirname, "open-tab.js")], {
+    cwd: os.tmpdir(),
     detached: true,
     stdio: "ignore",
     windowsHide: true,
