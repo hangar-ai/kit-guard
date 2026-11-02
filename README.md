@@ -63,7 +63,7 @@ tool and that agent, valid for 2 minutes; the hook uses it up on the retry. Tell
 retry. A row names its tool when it is not `Bash`: `PowerShell: Remove-Item …`. There is no blanket allow, and a pass only stops the guard from refusing: Claude
 Code's own permission prompts apply as usual. The list covers every workspace the kit is on,
 since its data folder is one; each row names its folder. English and French; drawn with
-[Hangar UI](https://github.com/simnJS/hangar-ai/blob/main/docs/kit-ui.md), so it follows Hangar's theme and holds at the panel's narrowest.
+[Hangar UI](https://github.com/hangar-ai/hangar/blob/main/docs/kit-ui.md), so it follows Hangar's theme and holds at the panel's narrowest.
 
 **A skill** tells agents, when refused, to explain to you why they needed it rather than
 looking for another way around it.
