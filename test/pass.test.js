@@ -1,16 +1,15 @@
 "use strict";
 // One-time passes, from the tab's click to the hook's retry: exact command, exact
-// agent, two minutes, once. The tab's real code writes them, the hook's real code
-// takes them, on a real folder.
+// agent, two minutes, once. A pass is written here in the shape the native tab writes
+// (native/tests/pass.rs holds the tab to it, native.test.js drives the tab itself), the
+// hook's real code takes it, on a real folder.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { decide } = require("../hooks/decide.js");
 const store = require("../hooks/store.js");
-const logic = require("../tabs/guard/logic.js");
-const { createController } = require("../tabs/guard/controller.js");
-const { tempFolder, fakeClock, fakeHangar, bashEvent, readLog, runHook } = require("./helpers.js");
+const { tempFolder, bashEvent, readLog, runHook } = require("./helpers.js");
 
 function setup(t) {
   const root = tempFolder(t);
@@ -25,9 +24,22 @@ function setup(t) {
 
 const lastRefusal = (dir) => readLog(dir).filter((event) => event.type === "refusal").pop();
 
+/** The file « Allow once » writes: this agent, this exact command, two minutes. */
+function passFor(event, now) {
+  return {
+    key: event.key,
+    agentId: event.agentId,
+    agent: event.agent,
+    tool: event.tool,
+    command: event.command,
+    createdAt: now,
+    expiresAt: now + store.PASS_TTL_MS,
+  };
+}
+
 function writePass(dir, event, now, change = {}) {
-  const pass = { ...logic.passFor({ ...event }, now), ...change };
-  const file = path.join(dir, logic.passPath(event.key));
+  const pass = { ...passFor(event, now), ...change };
+  const file = path.join(dir, "passes", `${event.key}.json`);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(pass));
   return file;
@@ -237,37 +249,7 @@ test("the log stays small enough for the tab to read", (t) => {
   assert.equal(events.at(-1).at, 1000 + 399, "the newest stay");
 });
 
-test("from refusal to retry: the hook logs, the tab lists, the click writes, the hook takes", async (t) => {
-  const { dir, run } = setup(t);
-  const clock = fakeClock(Date.parse("2026-10-31T18:00:00Z"));
-  run("git reset --hard", { now: clock.now() - 3000 });
-  run("git reset --hard", { now: clock.now() - 2000 });
-  run("git clean -fd", { now: clock.now() - 1000 });
-
-  const hangar = fakeHangar({ folder: dir });
-  const controller = createController({ hangar, logic, now: clock.now, setTimer: clock.setTimer, clearTimer: clock.clearTimer });
-  t.after(() => controller.dispose());
-  await controller.start();
-  assert.equal(controller.state.rows.length, 2);
-  const row = controller.state.rows.find((candidate) => candidate.command === "git reset --hard");
-  assert.equal(row.count, 2);
-  assert.deepEqual(hangar.callsTo("tab.setBadge").pop().args, { state: "failure", text: "2" });
-
-  await controller.allow(row.key);
-  assert.equal(logic.passState(row, controller.state.grants[row.key], clock.now()).state, "active");
-  assert.ok(fs.existsSync(path.join(dir, "passes", `${row.key}.json`)));
-
-  await clock.advance(10 * 1000);
-  assert.equal(run("git reset --hard", { now: clock.now() }), null, "the retry goes through");
-  assert.ok(run("git clean -fd", { now: clock.now() }), "and only that one");
-
-  await clock.advance(2000);
-  const updated = controller.state.rows.find((candidate) => candidate.key === row.key);
-  assert.equal(logic.passState(updated, controller.state.grants[row.key], clock.now()).state, "used");
-  assert.deepEqual(hangar.callsTo("tab.setBadge").pop().args, { state: "failure", text: "1" });
-});
-
-test("the real hook process takes a pass the tab's code wrote", async (t) => {
+test("the real hook process takes a pass written as the tab writes it", async (t) => {
   const { dir, project } = setup(t);
   const env = { HANGAR_KITS_DATA: path.dirname(dir), HANGAR_PANE_ID: "pane-1", HANGAR_PANE_NAME: "Ava", CLAUDE_PROJECT_DIR: project };
   const refused = await runHook(bashEvent("git reset --hard", project), env);
@@ -279,7 +261,7 @@ test("the real hook process takes a pass the tab's code wrote", async (t) => {
   assert.ok((await runHook(bashEvent("git reset --hard", project), env)).stdout, "once");
 });
 
-test("the real hook process takes a pass the tab's code wrote, on the PowerShell tool", async (t) => {
+test("the real hook process takes a pass written as the tab writes it, on the PowerShell tool", async (t) => {
   const { dir, project } = setup(t);
   const env = { HANGAR_KITS_DATA: path.dirname(dir), HANGAR_PANE_ID: "pane-1", HANGAR_PANE_NAME: "Ava", CLAUDE_PROJECT_DIR: project };
   const event = JSON.stringify({ session_id: "s", cwd: project, hook_event_name: "PreToolUse", tool_name: "PowerShell", tool_input: { command: "Remove-Item -Recurse -Force .git" } });

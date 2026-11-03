@@ -1,4 +1,4 @@
-//! What the tab draws: `tabs/guard/view.js`, in Hangar UI's widgets, with no
+//! What the tab draws, in Hangar's own widgets, with no
 //! colour of its own. Everything an agent wrote (its name, the command, the
 //! folder, the reason) is text: it is never read as anything else.
 

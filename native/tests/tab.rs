@@ -1,7 +1,6 @@
-//! The tab, its controller and its view, against a pretend Hangar: the second
-//! half of test/tab.test.js (its fake `window.hangar`, its fake DOM and its fake
-//! clock become `common::Tab`), in both languages, and what the tab does when
-//! Hangar denies it.
+//! The tab against a pretend Hangar (`common::Tab`): what it reads and shows,
+//! what a click writes, in both languages, and what it does when Hangar denies
+//! it.
 
 mod common;
 
@@ -110,7 +109,7 @@ fn a_refusal_agent_command_why_when_and_one_button() {
         0,
         "several rows, several buttons: none is the one primary action"
     );
-    // A block that scrolls: its height is capped as the page's was.
+    // A block that scrolls: its height is capped.
     let mut heights = Vec::new();
     tab.h.view().root.for_each(&mut |element| {
         if let Widget::Pre(pre) = element {

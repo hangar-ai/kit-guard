@@ -1,6 +1,6 @@
 //! The Guardrails tab, native: the refusals the hook logged, and the one-time
-//! pass a click writes. `tabs/guard/` is the same tab as a page, which an
-//! older Hangar still opens; this is `tabs/guard.wasm`.
+//! pass a click writes. It is built to `tabs/guard.wasm`, the `entry` of the
+//! manifest.
 //!
 //! The guard itself, the hook that refuses a dangerous command or the reading
 //! of a secret before it runs, is Claude Code hook code (`hooks/`) and is not
@@ -13,12 +13,11 @@
 //! - `data.write` of `passes/<key>.json` on a click of « Allow once », and of
 //!   `state.json` on « Clear the list ».
 //!
-//! Those are its two permissions, as the page's were, and nothing else is
+//! Those are its two permissions, and nothing else is
 //! called but `tab.setTitle` and `tab.setBadge`.
 //!
-//! Where the page awaited, the tab has a message: a poll is two reads in
-//! flight, answered one after the other, and a second poll does not start
-//! while one is waiting.
+//! A poll is two reads in flight, answered one after the other, and a second
+//! poll does not start while one is waiting.
 
 pub mod logic;
 pub mod strings;
@@ -47,7 +46,7 @@ const CLOCK: Duration = Duration::from_secs(1);
 /// the newest rows' only.
 pub const PASSES_READ_AT_START: usize = 16;
 
-/// What the page is, before its rows.
+/// What the tab shows, before its rows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Phase {
     Loading,
@@ -204,7 +203,7 @@ impl Guard {
         else {
             return;
         };
-        // The log's refusal first, as the page read one then the other.
+        // The log's refusal first, then the errors.
         match log.and_then(|log| errors.map(|errors| (log, errors))) {
             Ok((log, errors)) => {
                 if self.last_log.as_deref() != Some(log.as_str())

@@ -1,10 +1,10 @@
-//! The tab's pure logic, `tabs/guard/logic.js` ported: the hook's log turned
-//! into what the page lists, and the one-time pass a click writes. No Hangar
+//! The tab's pure logic: the hook's log turned
+//! into what the tab lists, and the one-time pass a click writes. No Hangar
 //! here, no widget: the tab and its tests both use it.
 //!
 //! The log is written by the hook (`hooks/store.js`) and the pass is read by
 //! it (`takePass`), so the shapes below are a contract with that code: they
-//! stay as the page had them, field for field.
+//! stay as they are, field for field.
 
 use std::collections::HashMap;
 
@@ -35,7 +35,7 @@ pub fn js_length(text: &str) -> usize {
 }
 
 /// One line of a log: a JSON object with a finite `at`. The rest is read as
-/// the page read it, leniently, by [`Event::text`].
+/// read leniently, by [`Event::text`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct Event {
     pub at: f64,
@@ -161,7 +161,7 @@ pub fn build_rows(events: &[Event], cleared_at: f64) -> Vec<Row> {
             _ => {}
         }
     }
-    // Stable, as the page's sort was: rows of the same time keep the log's order.
+    // Stable: rows of the same time keep the log's order.
     rows.sort_by(|a, b| b.at.total_cmp(&a.at));
     rows
 }

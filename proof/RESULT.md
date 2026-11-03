@@ -209,7 +209,7 @@ What it said then:
 
 > The command ran `git clean -fd` and removed the untracked file `untracked.txt`.
 
-Between the two sessions, the tab's own code (`logic.passFor`) wrote the pass for the refusal the hook had logged.
+Between the two sessions, the pass for the refusal the hook had logged was written in the shape the tab writes.
 
 - [x] the agent tried that exact command
 - [x] no refusal came back

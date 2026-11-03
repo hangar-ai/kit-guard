@@ -1,6 +1,5 @@
-//! The tab's logic, `tabs/guard/logic.js` and the first half of
-//! test/tab.test.js: the same cases, the same expectations, on `logic.rs` and
-//! the strings.
+//! The tab's logic: the log read into rows, the pass, the badge, the words,
+//! on `logic.rs` and the strings.
 
 mod common;
 
@@ -237,7 +236,7 @@ fn rows_one_per_agent_and_command_newest_first_until_a_pass_is_used() {
         )],
         0.0,
     );
-    assert_eq!(without[0].length, 3.0, "UTF-16 units, as the page counted");
+    assert_eq!(without[0].length, 3.0, "UTF-16 units, as the hook counts");
 }
 
 #[test]

@@ -14,7 +14,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { spawnSync, execFileSync } = require("node:child_process");
-const logic = require("../tabs/guard/logic.js");
+const store = require("../hooks/store.js");
 
 const KIT = path.join(__dirname, "..");
 const MODEL = "haiku";
@@ -110,12 +110,13 @@ function refusals() {
   }
 }
 
-/** « Autoriser une fois », as the tab's own code writes it. */
+/** « Autoriser une fois », as the tab writes it: this agent, this exact command, two minutes. */
 function allowOnce(event) {
-  const row = logic.buildRows([event])[0];
-  const file = path.join(dataDir, logic.passPath(row.key));
+  const now = Date.now();
+  const pass = { key: event.key, agentId: event.agentId, agent: event.agent, tool: event.tool, command: event.command, createdAt: now, expiresAt: now + store.PASS_TTL_MS };
+  const file = path.join(dataDir, "passes", `${event.key}.json`);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(logic.passFor(row, Date.now())));
+  fs.writeFileSync(file, JSON.stringify(pass));
   return file;
 }
 
@@ -239,7 +240,7 @@ function main() {
     ["the command ran: untracked.txt is gone", !exists("untracked.txt")],
     ["the pass is used up: its file is gone", pass !== null && !fs.existsSync(pass)],
     ["and the log says so", used.type === "pass-used" && refusal && used.key === refusal.key],
-  ], "Between the two sessions, the tab's own code (`logic.passFor`) wrote the pass for the refusal the hook had logged.");
+  ], "Between the two sessions, the pass for the refusal the hook had logged was written in the shape the tab writes.");
   const after = run("PowerShell", command);
   proofCase("A one-time pass, on PowerShell: once only", after, checkRefused(after, /git clean --force deletes untracked files/, []));
 

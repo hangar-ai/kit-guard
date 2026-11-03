@@ -1,5 +1,4 @@
-//! A pretend Hangar around the tab, for the tests: what `fakeHangar`, `fakeClock`
-//! and `settle` of test/helpers.js were for the page. It answers the calls the
+//! A pretend Hangar around the tab, for the tests. It answers the calls the
 //! way Hangar does for the two permissions the tab holds, keeps a data folder in
 //! memory, and moves the clock a second at a time, firing the timers the tab
 //! declared when they are due.
@@ -24,7 +23,7 @@ use kit_guard_tab::logic::{ERRORS, LOG, STATE};
 pub const KEY_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 pub const KEY_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
-/// `Date.parse("2026-10-31T18:00:00Z")`, which the page's tests used.
+/// 2026-10-31T18:00:00Z, the instant every test starts from.
 pub fn now() -> i64 {
     format::parse_iso("2026-10-31T18:00:00Z").expect("a date")
 }
@@ -286,8 +285,7 @@ impl Tab {
         }
     }
 
-    /// Lets `ms` pass, a second at a time, firing what is due, as the page's
-    /// `clock.advance` did.
+    /// Lets `ms` pass, a second at a time, firing what is due.
     pub fn advance(&mut self, ms: i64) {
         let end = self.clock + ms;
         while self.clock < end {

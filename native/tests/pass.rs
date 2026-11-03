@@ -1,7 +1,7 @@
 //! The one-time pass, from the tab's click to the hook's retry: this agent, this
 //! exact command, two minutes, once. The tab's Rust writes them, the hook's real
 //! Node code (`hooks/decide.js`, `hooks/store.js`) takes them, on a real folder.
-//! It is test/pass.test.js again, with the tab on the other side of the file.
+//! test/pass.test.js does the same with the pass written by the test itself.
 //!
 //! These need Node, which the hook is written for. Without it they say so and
 //! pass; with GUARD_REQUIRE_NODE set (CI does), they fail instead.
@@ -121,7 +121,7 @@ fn the_pass_is_the_file_the_hook_reads_field_for_field() {
 }
 
 #[test]
-fn the_pass_is_byte_for_byte_what_the_page_wrote() {
+fn the_pass_is_byte_for_byte_what_json_stringify_writes() {
     let Some(hook) = Hook::new() else {
         eprintln!("skipped: node is not on the PATH");
         return;
@@ -141,17 +141,24 @@ fn the_pass_is_byte_for_byte_what_the_page_wrote() {
             json!({ "command": command, "agent": "Ava · Explore" }),
         )]);
         let (_, written) = click(&log, false);
-        let page = node_eval(
+        // The hook reads the file with JSON.parse, and a pass was always written
+        // by JSON.stringify: Node writes the same fields, the same way.
+        let expected = node_eval(
             r#"
-            const path = require("node:path");
-            const [kit, log, now] = process.argv.slice(1);
-            const logic = require(path.join(kit, "tabs", "guard", "logic.js"));
-            const rows = logic.buildRows(logic.parseLines(log));
-            process.stdout.write(JSON.stringify(logic.passFor(rows[0], Number(now))));
+            const [key, agentId, agent, tool, command, now] = process.argv.slice(1);
+            const at = Number(now);
+            process.stdout.write(JSON.stringify({ key, agentId, agent, tool, command, createdAt: at, expiresAt: at + 2 * 60 * 1000 }));
             "#,
-            &[kit().to_str().expect("a path"), &log, &at.to_string()],
+            &[
+                KEY_A,
+                "pane-1",
+                "Ava · Explore",
+                "Bash",
+                command,
+                &at.to_string(),
+            ],
         );
-        assert_eq!(written, page, "{command:?}");
+        assert_eq!(written, expected, "{command:?}");
     }
     drop(hook);
 }
