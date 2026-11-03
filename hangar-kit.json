@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "id": "guard",
   "name": "Guardrails",
   "version": "0.1.1",
@@ -7,7 +7,7 @@
   "author": "Hangar",
   "homepage": "https://github.com/hangar-ai/kit-guard",
   "icon": "icon.svg",
-  "hangar": ">=1.9.0",
+  "hangar": ">=2.0.0",
   "gallery": {
     "permissionsSummary": "Runs a hook before each call of a tool that runs a command or touches a file (Bash, PowerShell, Monitor, Read, Edit, Write, Grep and the others its README lists) that can refuse it, shows a tab listing the refusals, and keeps them with its one-time passes in the kit's own data folder.",
     "tags": ["safety", "hooks", "tab"]
@@ -16,8 +16,7 @@
     {
       "id": "guard",
       "title": "Guardrails",
-      "entry": "tabs/guard/index.html",
-      "native": "tabs/guard.wasm",
+      "entry": "tabs/guard.wasm",
       "icon": "icon.svg",
       "permissions": ["data.read", "data.write"]
     }

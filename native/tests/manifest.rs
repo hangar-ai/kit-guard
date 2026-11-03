@@ -1,6 +1,6 @@
-//! The manifest's new field: `native` names the module, and the module is the
-//! file `scripts/build-native.sh` puts there. The rest of the manifest is
-//! checked by test/manifest.test.js, which runs with the page's tests.
+//! The manifest's tab: its `entry` is the module, and the module is the file
+//! `scripts/build-native.sh` puts there. The rest of the manifest is checked by
+//! test/manifest.test.js.
 
 mod common;
 
@@ -14,24 +14,28 @@ fn manifest() -> Value {
 }
 
 #[test]
-fn the_native_field_names_a_wasm_file_inside_the_kit_beside_the_page() {
+fn the_entry_names_a_wasm_file_inside_the_kit() {
     let manifest = manifest();
-    assert_eq!(manifest["schema"], 1, "stays at schema 1, for Hangar 1.x");
+    assert_eq!(manifest["schema"], 2, "a native tab needs schema 2");
+    assert_eq!(manifest["hangar"], ">=2.0.0");
     let tab = &manifest["tabs"][0];
-    assert_eq!(tab["entry"], "tabs/guard/index.html", "the page is kept");
-
-    let native = tab["native"].as_str().expect("a native field");
-    assert!(native.to_lowercase().ends_with(".wasm"));
     assert!(
-        !native.starts_with(['/', '\\']) && !native.contains(':'),
+        tab.get("native").is_none(),
+        "schema 2 has no `native` field"
+    );
+
+    let entry = tab["entry"].as_str().expect("an entry");
+    assert_eq!(entry, "tabs/guard.wasm");
+    assert!(
+        !entry.starts_with(['/', '\\']) && !entry.contains(':'),
         "relative"
     );
     assert!(
-        native.split(['/', '\\']).all(|part| part != ".."),
+        entry.split(['/', '\\']).all(|part| part != ".."),
         "inside the kit"
     );
 
-    let module = std::fs::read(kit().join(native)).expect("the module is committed");
+    let module = std::fs::read(kit().join(entry)).expect("the module is committed");
     assert_eq!(&module[..4], b"\0asm", "WebAssembly");
     assert!(module.len() < 64 * 1024 * 1024);
 }
