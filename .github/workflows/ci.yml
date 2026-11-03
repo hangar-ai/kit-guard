@@ -11,12 +11,14 @@ permissions:
 
 jobs:
   kit-check:
-    uses: hangar-ai/.github/.github/workflows/kit-check.yml@v1
+    uses: hangar-ai/.github/.github/workflows/kit-check.yml@rust-rewrite
 
-  # The native tab: Rust built to WebAssembly (native/, tabs/guard.wasm). The
-  # module is committed, because Hangar runs the file a kit ships and never
-  # builds one, so this job builds it again and fails if the committed one is
-  # another: a source changed without its module, or a module nobody can make.
+  # The native tab, which is the kit's tab: Rust built to WebAssembly (native/,
+  # tabs/guard.wasm). The module is committed, because Hangar runs the file a kit
+  # ships and never builds one, so this job builds it again and fails if the
+  # committed one is another: a source changed without its module, or a module
+  # nobody can make. The plugin's own tests (the hook) run in the shared
+  # checker's `node --test`, on Linux and Windows.
   native:
     name: native tab (cargo, wasm32)
     runs-on: ubuntu-latest
@@ -39,13 +41,7 @@ jobs:
         env:
           GUARD_REQUIRE_NODE: "1"
         run: cargo test --manifest-path native/Cargo.toml --locked
-      - name: Build the module
-        run: scripts/build-native.sh
       - name: The committed module is the one this source makes
-        run: |
-          if ! git diff --exit-code --stat -- tabs/guard.wasm; then
-            echo "::error file=tabs/guard.wasm::The committed module is not what native/ builds. Run scripts/build-native.sh and commit tabs/guard.wasm with the source."
-            exit 1
-          fi
-      - name: The module Hangar loads
+        run: scripts/build-native.sh --check
+      - name: The manifest and the module Hangar loads
         run: node --test test/manifest.test.js test/native.test.js

@@ -62,35 +62,29 @@ command, why, when. **« Autoriser une fois »** writes a pass for that exact co
 tool and that agent, valid for 2 minutes; the hook uses it up on the retry. Tell the agent to
 retry. A row names its tool when it is not `Bash`: `PowerShell: Remove-Item …`. There is no blanket allow, and a pass only stops the guard from refusing: Claude
 Code's own permission prompts apply as usual. The list covers every workspace the kit is on,
-since its data folder is one; each row names its folder. English and French; drawn with
-[Hangar UI](https://github.com/hangar-ai/hangar/blob/main/docs/kit-ui.md), so it follows Hangar's theme and holds at the panel's narrowest.
+since its data folder is one; each row names its folder. English and French; drawn by
+Hangar itself, so it follows Hangar's theme and holds at the panel's narrowest.
 
 **A skill** tells agents, when refused, to explain to you why they needed it rather than
 looking for another way around it.
 
-## The tab, native and as a page
+## The tab is native
 
-The tab exists twice, and they are one tab: as a page (`tabs/guard/`, what Hangar 1.x opens)
-and as Rust built to WebAssembly (`tabs/guard.wasm`, from [`native/`](native/)), which a Hangar
-that runs native tabs draws itself, in your theme, with no browser engine. The manifest stays at
-`"schema": 1`, keeps the page as its `entry` and names the module in `native`: an older Hangar
-ignores that field and opens the page, and so does a newer one when the module cannot be loaded
-(its bar says so). The hook is the same for both, and is not part of the tab.
+The tab is Rust built to WebAssembly (`tabs/guard.wasm`, from [`native/`](native/)), which Hangar
+draws itself, in your theme, with no browser engine. It needs Hangar 2.0 or later. The hook is not
+part of the tab, and does not depend on it.
 
-Same rows, same words in English and French, same two permissions, same four calls (`data.read`,
-`data.write`, `tab.setTitle`, `tab.setBadge`), and the same pass: one click writes
-`passes/<key>.json`, for that agent, that tool, that exact command, valid for 2 minutes, which the hook
-takes once. What the native tab cannot do that the page could:
+It holds two permissions (`data.read`, `data.write`) and makes four calls (`data.read`, `data.write`,
+`tab.setTitle`, `tab.setBadge`). One click writes `passes/<key>.json`, for that agent, that tool, that
+exact command, valid for 2 minutes, which the hook takes once. What the tab cannot do:
 
 - **Select a part of a command or of a reason with the pointer**, to copy it. Hangar draws
   text it cannot select; the command is shown whole, in a block that scrolls.
-- **Say a refusal is an alert to a screen reader** (`role="alert"`, `aria-label`): iced has no
-  accessibility tree yet. The glyphs of a row name themselves when the pointer rests on them.
+- **Say a refusal is an alert to a screen reader**: the toolkit has no accessibility tree yet. The
+  glyphs of a row name themselves when the pointer rests on them.
 
-What it does differently: the countdown of a running pass is drawn every second while the tab is
-in front (the page drew it at each poll, every two seconds), and after a reload the passes still
-good are found again from their files at the first read that works, not only if the very first
-one did.
+The countdown of a running pass is drawn every second while the tab is in front, and after a reload the
+passes still good are found again from their files at the first read that works.
 
 ## What it does not protect against
 
@@ -147,8 +141,7 @@ file for the agent:
 - **Your project**: it only reads `.hangar/guard.json` and, for `git push`, `.git/HEAD` and
   `origin/HEAD`.
 
-The tab holds `data.read` and `data.write`, and loads no external resource. Its native form holds
-the same two and calls nothing more than the page did.
+The tab holds `data.read` and `data.write`, and calls nothing more than the four methods above.
 
 ## Rules
 
@@ -169,7 +162,7 @@ A file that is not valid JSON is reported, and leaves the kit's rules as they ar
 
 ## Install
 
-You need Hangar 1.9.0 or later, and `node` on your PATH for the hook (without it, the hook does
+You need Hangar 2.0.0 or later, and `node` on your PATH for the hook (without it, the hook does
 nothing and every call passes).
 
 1. In Hangar, Settings › Kits, add the GitHub link:
@@ -178,8 +171,7 @@ nothing and every call passes).
 2. Enable it on a workspace, and read what you accept: the hook and the tab's two permissions.
 3. Restart the workspace's Claude Code panes so they load the plugin.
 
-On a Hangar that runs native tabs, the tab is the module `tabs/guard.wasm`; on any other it is the
-page. Nothing is built on your machine: the module is committed.
+Nothing is built on your machine: the module `tabs/guard.wasm` is committed.
 
 ## Tests
 
@@ -188,15 +180,15 @@ node --test kits/guard/
 cargo test --manifest-path native/Cargo.toml
 ```
 
-No install step. A table of several hundred command lines, refused and allowed, a wrong refusal
-counting as a bug as much as a missed one, with Windows's paths and shells, and another of several
-hundred PowerShell lines; the hook itself as a process (exit 0, the deny's format, its own failures,
-the route to the tab); passes from the tab's click to the hook's retry; the tab's logic, controller
-and view against a fake `window.hangar`; the same cases again for the native tab, in Rust, through the
-SDK's harness (`native/tests/`), where the pass the tab writes is also given to the hook's own code
-to take, and the committed module is driven through its ABI (`test/native.test.js`). The Rust tests
-that start the hook need `node` too; they say so and pass without it, and fail instead when
-`GUARD_REQUIRE_NODE` is set.
+No install step for the first. A table of several hundred command lines, refused and allowed, a wrong
+refusal counting as a bug as much as a missed one, with Windows's paths and shells, and another of
+several hundred PowerShell lines; the hook itself as a process (exit 0, the deny's format, its own
+failures, the route to the tab); passes from the click to the hook's retry; the manifest; the committed
+module driven through its ABI (`test/native.test.js`); and, in Rust through the SDK's harness
+(`native/tests/`), the tab's logic, what it shows in both languages and how it behaves when Hangar denies
+it, where the pass the tab writes is also given to the hook's own code to take. The Rust tests that start
+the hook need `node` too; they say so and pass without it, and fail instead when `GUARD_REQUIRE_NODE` is
+set.
 
 ## Proof in a real Claude Code
 
@@ -208,19 +200,19 @@ agent, and that a refused command did not run.
 
 ## This repository
 
-`node --test` runs the tests, with Node alone. Hangar's own files are not in this repository. CI takes Hangar UI and the docs from the Hangar tag the
-manifest's `hangar` names, and `node test/hangar-ui.js --get` does the same here. Without them, these tests
-skip what needs those files, and say so:
+`node --test` runs the plugin's and the manifest's tests, with Node alone. Hangar's own docs are not in
+this repository. CI takes them from the Hangar tag the manifest's `hangar` names, and
+`node test/hangar-ui.js --get` does the same here. Without them, this test skips and says so:
 
-- every class the view draws is one of Hangar UI's, when the library is around
-- the permissions, the route and the methods it uses are in the docs, when the docs are around
+- the permissions, the route and the variable the hook relies on are in the docs, when the docs are around
 
 `native/` is the native tab (a crate, `cdylib` and `rlib`, on the SDK of
 [hangar-ai/hangar](https://github.com/hangar-ai/hangar) at the commit `native/Cargo.lock` pins).
 `scripts/build-native.sh` builds it to `tabs/guard.wasm` (`rustup target add wasm32-unknown-unknown`
 once; `rust-toolchain.toml` pins the compiler). Hangar runs the module a kit ships and never builds one,
 so it is committed with the source that makes it, in the same commit. The build does not depend on where
-it runs, so CI builds it again and fails if the committed module is another, and no folder of the machine
+it runs, so CI builds it again and fails if the committed module is another
+(`scripts/build-native.sh --check` does the same here), and no folder of the machine
 that built it is in the file.
 
 CI calls [kit-check](https://github.com/hangar-ai/.github/blob/main/.github/workflows/kit-check.yml). A release is
