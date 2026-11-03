@@ -12,3 +12,40 @@ permissions:
 jobs:
   kit-check:
     uses: hangar-ai/.github/.github/workflows/kit-check.yml@v1
+
+  # The native tab: Rust built to WebAssembly (native/, tabs/guard.wasm). The
+  # module is committed, because Hangar runs the file a kit ships and never
+  # builds one, so this job builds it again and fails if the committed one is
+  # another: a source changed without its module, or a module nobody can make.
+  native:
+    name: native tab (cargo, wasm32)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: The toolchain rust-toolchain.toml pins, with its target
+        run: rustup show active-toolchain || rustup toolchain install
+      - name: Format and lint
+        run: |
+          cargo fmt --manifest-path native/Cargo.toml --check
+          cargo clippy --manifest-path native/Cargo.toml --locked --all-targets -- -D warnings
+      # Some tests start the hook's own Node code: a missing Node must fail here, not skip.
+      - name: Tests
+        env:
+          GUARD_REQUIRE_NODE: "1"
+        run: cargo test --manifest-path native/Cargo.toml --locked
+      - name: Build the module
+        run: scripts/build-native.sh
+      - name: The committed module is the one this source makes
+        run: |
+          if ! git diff --exit-code --stat -- tabs/guard.wasm; then
+            echo "::error file=tabs/guard.wasm::The committed module is not what native/ builds. Run scripts/build-native.sh and commit tabs/guard.wasm with the source."
+            exit 1
+          fi
+      - name: The module Hangar loads
+        run: node --test test/manifest.test.js test/native.test.js
