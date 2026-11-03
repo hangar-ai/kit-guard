@@ -17,6 +17,7 @@
       "id": "guard",
       "title": "Guardrails",
       "entry": "tabs/guard/index.html",
+      "native": "tabs/guard.wasm",
       "icon": "icon.svg",
       "permissions": ["data.read", "data.write"]
     }

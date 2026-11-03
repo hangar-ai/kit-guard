@@ -1,0 +1,8 @@
+# The compiler that builds tabs/guard.wasm (scripts/build-native.sh). A module
+# is committed and checked against a fresh build, so the compiler is pinned:
+# change it on purpose, and build the module again in the same commit.
+[toolchain]
+channel = "1.99.1"
+targets = ["wasm32-unknown-unknown"]
+components = ["clippy", "rustfmt"]
+profile = "minimal"

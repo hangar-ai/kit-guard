@@ -1,0 +1,25 @@
+[package]
+name = "kit-guard-tab"
+description = "The Guardrails tab of the guard kit: Rust, built to WebAssembly"
+version = "0.1.1"
+edition = "2024"
+publish = false
+
+# A cdylib is the module Hangar loads (tabs/guard.wasm); the rlib is for
+# `cargo test`, which runs the tab on the host, with no Hangar and no WebAssembly.
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# From git until a release tag holds the SDK. Cargo.lock pins the commit, so a
+# build is the same build tomorrow; `cargo update` moves it on purpose.
+hangar-kit-sdk = { git = "https://github.com/hangar-ai/hangar", branch = "feat/native-rust" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# A small module opens sooner. (scripts/build-native.sh keeps this machine's
+# folders out of the file, which is committed and published.)
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
