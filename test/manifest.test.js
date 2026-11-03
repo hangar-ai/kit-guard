@@ -14,7 +14,8 @@ const read = (...parts) => fs.readFileSync(path.join(KIT, ...parts), "utf8");
 
 function allFiles(dir = KIT, found = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if ([".git", ".hangar-ui", "node_modules"].includes(entry.name)) continue;
+    // `native/target` is the build of the native tab: not the kit's, and not text.
+    if ([".git", ".hangar-ui", "node_modules", "target"].includes(entry.name)) continue;
     if (entry.isDirectory()) allFiles(path.join(dir, entry.name), found);
     else found.push(path.join(dir, entry.name));
   }
@@ -67,6 +68,34 @@ test("the tab: Guardrails, and the two permissions it needs", () => {
   safePath(tab.icon, [".svg", ".png"], "tabs[0].icon");
   assert.deepEqual(tab.permissions, ["data.read", "data.write"]);
   assert.equal(tab.params, undefined);
+});
+
+test("the native tab: a module beside the page, which a Hangar without it ignores", () => {
+  const [tab] = manifest.tabs;
+  assert.equal(manifest.schema, 1, "a kit that must open on Hangar 1.x stays at schema 1");
+  assert.equal(tab.entry, "tabs/guard/index.html", "the page stays: what Hangar 1.x opens, and the way back if the module cannot load");
+  assert.equal(tab.native, "tabs/guard.wasm");
+  safePath(tab.native, [".wasm"], "tabs[0].native");
+  assert.equal(manifest.hangar, ">=1.9.0", "the page still opens there");
+});
+
+test("the module is one Hangar loads: built for wasm32-unknown-unknown, importing only what Hangar gives", () => {
+  const bytes = fs.readFileSync(path.join(KIT, manifest.tabs[0].native));
+  assert.ok(bytes.length > 0 && bytes.length < 64 * 1024 * 1024, "a kit's file is 64 MB at most");
+  const module = new WebAssembly.Module(bytes);
+  const imports = WebAssembly.Module.imports(module).map((entry) => `${entry.module}.${entry.name}`);
+  assert.deepEqual(imports.sort(), ["hangar.log", "hangar.now"], "no WASI, no wasm-bindgen glue");
+  const exports = WebAssembly.Module.exports(module).map((entry) => entry.name);
+  for (const name of ["memory", "hangar_abi_version", "hangar_alloc", "hangar_init", "hangar_update", "hangar_view"]) {
+    assert.ok(exports.includes(name), `exports ${name}`);
+  }
+  const instance = new WebAssembly.Instance(module, { hangar: { log: () => undefined, now: () => BigInt(Date.now()) } });
+  assert.equal(instance.exports.hangar_abi_version(), 1, "the ABI of docs/native/kits-native.md");
+});
+
+test("the module holds no folder of the machine that built it", () => {
+  const text = fs.readFileSync(path.join(KIT, manifest.tabs[0].native)).toString("latin1");
+  assert.doesNotMatch(text, /\/home\/|\/Users\/|[A-Za-z]:\\Users\\|\/tmp\//, "scripts/build-native.sh remaps them out");
 });
 
 test("the hook asks for the kit and the tab the manifest declares", () => {
